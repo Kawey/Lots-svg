@@ -1,9 +1,8 @@
 let stateStage = true;
 let activeElement;
 
-const elementsStage = document.querySelectorAll(".stage");
+const elementsStage = document.querySelectorAll(".pathStage");
 const elementsLot = document.querySelectorAll(".lot");
-   
 const mySvg = document.getElementById("mySvg");
 const btnBack = document.getElementById("btn-back");
 
@@ -14,52 +13,71 @@ const lotStageElm = document.getElementById('stage');
 const lotAreaElm = document.getElementById('area');
 const lotSizeElm = document.getElementById('size');
 const lotPriceElm = document.getElementById('price');
-//const button = document.querySelector('button');
+const btnAction = document.querySelector('action-btn');
 
 let dataDb;
 
+const colorRed = "#ef6f6cff";
+const colorBlue = "#465775ff";
+const colorGreen = "#56e39fff";
+const colorOcean = "#59c9a5ff";
+const colorYellow = "#D2C656";
+const colorFeld = "#5b6c5dff";
+
+const sizes = {
+  width: window.innerWidth,
+  height: window.innerHeight,
+  aspect: window.innerWidth / window.innerHeight
+}
+
+/**
+ * Page Initialisation
+ */
+
+// LOAD event
 window.addEventListener('load', (event) => {
   const endpoint = `/lots`;
-
+  // Get lots data from db
   fetch(endpoint, {
     method: 'GET',
   })
     .then(response => response.json())
     .then((data) => {
-      //const res = response.json();
-      // console.log(data);
       dataDb = data;
-      //console.log(data.body);
+      for (let i = 0; i < elementsLot.length; i++) {
+        switch (dataDb[i].status) {
+          case "available":
+            elementsLot[i].style.fill = colorGreen;
+            break;
+          case "reserved":
+            elementsLot[i].style.fill = colorYellow;
+            break;
+          case "sold":
+            elementsLot[i].style.fill = colorRed;
+            break;
+          default:
+            console.log(i, dataDb[i].status)
+            elementsLot[i].style.fill = colorBlue;
+            break;
+        }
+      }
     })
     .catch(err => console.log(err));
-  // console.log('page is fully loaded');
 });
-
-const sizes = {
-  width: window.innerWidth,
-  height: window.innerHeight,
-  aspect: window.innerWidth/window.innerHeight
-}
-
-// RESIZE and POSITION initial
-
+/**
+ * RESIZE and POSITION of SVG initial
+ */
 mySvg.width.baseVal.value = sizes.width
 mySvg.height.baseVal.value = sizes.height
+
 const viewBoxSizes = calcSVGsize(sizes.width, sizes.height)
-// console.log(viewBoxSizes);
 mySvg.viewBox.baseVal.width = viewBoxSizes.width
 mySvg.viewBox.baseVal.height = viewBoxSizes.height
-// console.log("i SVGsize W:", viewBoxSizes.width.toFixed(3), "H:", viewBoxSizes.height.toFixed(3));
-
-let scrToSvgIn = screenToSVG(sizes.width / 2, sizes.height / 2);
-//console.log("i scr CntrToSvg ?? x:", scrToSvgIn.x.toFixed(3), "y:", scrToSvgIn.y.toFixed(3));
 
 const SVGpos = calcSVGpos(sizes.width / 2, sizes.height / 2);
 mySvg.viewBox.baseVal.x = SVGpos.x
 mySvg.viewBox.baseVal.y = SVGpos.y
 scrToSvgIn = screenToSVG(sizes.width / 2, sizes.height / 2);
-//console.log("i scr CntrToSvg 25 x:", scrToSvgIn.x.toFixed(3), "y:", scrToSvgIn.y.toFixed(3));
-
 
 // RESIZE event
 window.addEventListener('resize', () =>
@@ -81,6 +99,8 @@ window.addEventListener('resize', () =>
     mySvg.viewBox.baseVal.x = SVGpos.x
     mySvg.viewBox.baseVal.y = SVGpos.y
   } else {
+    const bBox = activeElement.getBBox();
+
     mySvg.width.baseVal.value = sizes.width
     mySvg.height.baseVal.value = sizes.height
     mySvg.viewBox.baseVal.width = bBox.width+sizes.width/10,
@@ -91,9 +111,7 @@ window.addEventListener('resize', () =>
 // Click event inside
 elementsStage.forEach(function (elem) {
   elem.addEventListener("click", (e) => {
-  // console.log("inside");
   const SVGpos = calcSVGpos(sizes.width / 2, sizes.height / 2)
-  // console.log("SVGpos ",SVGpos);
   activeElement = elem;
   const bBox = elem.getBBox();
   gsap.fromTo(
@@ -127,14 +145,11 @@ elementsStage.forEach(function (elem) {
 
 // Click event BACK to top
 btnBack.addEventListener("click", (e) => {
-  // console.log("back");
   stateStage = true
   bBox = activeElement.getBBox();
 
   const SVGsize = calcSVGsize(sizes.width, sizes.height)
 
-  const SVGpos = calcSVGpos(sizes.width / 2, sizes.height / 2)
-  // console.log("target ",SVGpos);
   gsap.fromTo(
     mySvg.viewBox.baseVal,
     { x: bBox.x, y: bBox.y, width: bBox.width, height: bBox.height },
@@ -145,7 +160,6 @@ btnBack.addEventListener("click", (e) => {
         ease: "slow"
     }
   );
-  // console.log(activeElement.id);
   gsap.fromTo(
     ".G" + activeElement.id.charAt(1),
     { opacity: 1 },
@@ -181,7 +195,6 @@ function screenToSVG(screenX, screenY) {
 };
 
 function calcSVGsize(width, height) {
-  const mySvg = document.getElementById("mySvg");
   const VBWidth = 1520; // base svg ViewBox width 1920<=cause jump
   const VBHeight = 1520; // base svg ViewBox height 1080<=cause jump
   const minWidth = 960; // min screen width 960
@@ -189,7 +202,6 @@ function calcSVGsize(width, height) {
   const minVBW = 1200; // minimum target ViewBox
   const minVBH = 1200; // minimum target ViewBox height
 
-  
   const svgSize = {}
   
   if(sizes.aspect > 1) {
@@ -204,8 +216,6 @@ function calcSVGsize(width, height) {
     return svgSize
   }
 }
-
-console.log("init pos",screenToSVG(sizes.width / 2, sizes.height / 2));
 
 function calcSVGpos(width, height) {
   const svgCenter = { x: 966, y: 577 }
